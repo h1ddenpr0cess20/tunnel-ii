@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Neverending Tunnel II</title>
+</head>
+<body>
+<canvas id="tunnel" role="img" aria-label="Flying down an endless spiralling vortex of white light, with Mars small and red at the far end"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <div class="stat">
+    <span class="lab">Distance flown</span>
+    <span class="val" id="dist">0 m</span>
+  </div>
+  <div class="stat right">
+    <span class="lab">To Mars</span>
+    <span class="val mars" id="mars">225,000,000 km</span>
+  </div>
+</div>
+
+<p class="whisper" id="whisper" aria-live="polite"></p>
+
+<section class="panel" id="title">
+  <h1>Neverending Tunnel <span class="ii">II</span></h1>
+  <p class="sub">chasing mars</p>
+  <p class="lede">Mars is at the end of the tunnel. Fly to it.</p>
+  <dl class="keys kb-only">
+    <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>steer round the debris</dd>
+    <dt><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></dt><dd>steer, too</dd>
+    <dt><kbd>P</kbd> <kbd>M</kbd></dt><dd>pause, sound</dd>
+  </dl>
+  <dl class="keys touch-only">
+    <dt>drag</dt><dd>steer round the debris</dd>
+  </dl>
+  <p class="go"><span class="kb-only">Press space to fly</span><span class="touch-only">Tap to fly</span></p>
+  <p class="dim" id="best-title" hidden></p>
+</section>
+
+<section class="panel" id="over" hidden>
+  <h2 id="over-head">you hit a rock</h2>
+  <p class="big" id="over-dist">0 m</p>
+  <p class="lede" id="over-mars"></p>
+  <p class="dim" id="over-best"></p>
+  <p class="go"><span class="kb-only">Press space to fly again</span><span class="touch-only">Tap to fly again</span></p>
+</section>
+
+<section class="panel" id="paused" hidden>
+  <h2>paused</h2>
+  <p class="go"><span class="kb-only">Press P to keep flying</span><span class="touch-only">Tap to keep flying</span></p>
+</section>
+
+<section class="panel" id="error" hidden>
+  <h2>WebGPU or WebGL 2 is needed</h2>
+  <p class="lede" id="error-msg"></p>
+  <p class="dim">Try a current version of Chrome, Edge, Firefox or Safari.</p>
+</section>
+
+<button class="ctl" id="pause" type="button" hidden>Pause</button>
+<button class="ctl" id="snd" type="button">Sound on</button>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
