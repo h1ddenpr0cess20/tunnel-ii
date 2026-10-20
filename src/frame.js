@@ -46,7 +46,7 @@ export function packFrame(f, { game, view, t, dt, count, reduceMotion, gain, met
   const per = Math.max(1, Math.floor((count - nDust) / (BUNDLES * STRANDS)));
   f.count = nDust + per * BUNDLES * STRANDS;
   const off = S.s - NEAR;
-  P.set([view.w, view.h, t % 1000, view.dpr], 32);
+  P.set([view.w, view.h, t % 3600, view.dpr], 32);   // the shaders' clock: see Mars below
   P.set([((off % WINDOW) + WINDOW) % WINDOW, Math.floor(off / WINDOW), f.spin, f.spin - rate * STREAK], 36);
   P.set([WINDOW, NEAR, FAR, gain], 40);
   P.set([count, BUNDLES, STRANDS, per], 44);
@@ -54,9 +54,13 @@ export function packFrame(f, { game, view, t, dt, count, reduceMotion, gain, met
   P.set(phases(S.s, f.ph), 52);
   P.set(K, 64);
 
-  // Mars, far down the tunnel.
-  const [mx, my] = pathXY(S.s + MARS_D);
-  const mPos = [mx, my, MARS_D];
+  // Mars, far down the tunnel, right behind the middle of the black hole
+  // (where the funnel leans to: see place() in particles.wgsl).
+  const tw = t % 3600;
+  const [hx, hy] = pathXY(S.s + FAR);
+  const hole = [hx + Math.sin(tw * 0.071 + 1.0) * 0.1 * FAR, hy + Math.sin(tw * 0.053 + 2.0) * 0.1 * FAR, FAR];
+  const k = MARS_D / FAR;
+  const mPos = [now.eye[0] + (hole[0] - now.eye[0]) * k, now.eye[1] + (hole[1] - now.eye[1]) * k, now.eye[2] + (hole[2] - now.eye[2]) * k];
   const mc = project(f.vp, mPos);
   const R = marsSize(meters) * MARS_D;
   const rNdc = mc[2] > 0 ? R / tanY / mc[2] : 0;

@@ -3,8 +3,12 @@
 // Every particle is made up here from its index alone. Streams come in
 // tight bundles that all twist the same way round the tunnel, winding
 // tighter the deeper they go and opening out a little, so they wrap round
-// the middle like water down a drain. The spiral's shape is held to your
-// view and the particles flow along it as you fly. Each particle is drawn as
+// the middle like water down a drain. No two bundles wind alike: each has
+// its own twist and its own slow waves along it, in and out and round,
+// which roll down it as time goes by, and its strands braid; the bundles
+// bunch up round the tunnel, and the whole funnel leans this way and that.
+// The spiral's shape is held to your view and the particles flow along it
+// as you fly. Each particle is drawn as
 // a short streak from where it is now to where it was STREAK seconds ago.
 // Far away they fade to nothing: the black hole at the centre.
 //
@@ -49,6 +53,25 @@ fn centre(z: f32) -> vec2f {
                1.2 * wave(2u, z) + 0.5 * wave(3u, z) + 0.5 * wave(10u, z));
 }
 
+// A stream's shape: where round the tunnel and how far out, before twisting.
+struct Stream {
+  th: f32, r: f32,
+  twist: f32, wind: f32,       // radians per unit of depth, and per unit squared
+  wa: f32, wf: f32, ws: f32,   // its wave: how far, how often along it, how fast
+  wob: f32, braid: f32, strm: f32,
+};
+
+// Where on its stream a particle is at depth z, with the vortex turned by spin.
+fn place(st: Stream, z: f32, spin: f32, t: f32) -> vec3f {
+  let wave = st.wa * sin(z * st.wf + st.wob + t * st.ws);
+  let braid = 0.05 / st.r * sin(z * 0.8 + st.braid + t * 1.1);
+  let wb = 0.35 * sin(P(8u) + z * K(8u) + st.wob);
+  let ang = st.th + spin + st.strm * (st.twist * z + st.wind * z * z + wave + braid + wb);
+  let swell = 1.0 + st.strm * (OPEN * z + 0.16 * sin(z * st.wf * 1.3 + st.wob * 1.7 - t * st.ws * 0.8));
+  let lean = vec2f(sin(t * 0.071 + 1.0), sin(t * 0.053 + 2.0)) * 0.1 * z;
+  return vec3f(centre(z) + lean + st.r * swell * vec2f(cos(ang), sin(ang)), z);
+}
+
 fn none() -> VO {
   var o: VO;
   o.pos = vec4f(2.0, 2.0, 2.0, 1.0);
@@ -69,8 +92,7 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
   var size: f32;
   var bright: f32;
   var spinMul = 1.0;
-  var tw = 0u;
-  var wob = 0.0;
+  var st = Stream(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
   if (ii < nDust) {
     // Loose dust, everywhere, including the open middle you fly through.
@@ -90,12 +112,19 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
     let hb = bundle * 8u + 1000003u;
     let hs = strand * 8u + 2000003u;
     let hp = j * 4u + 3000017u;
-    // Bundle: where round the tunnel, how deep in the walls, which twist.
+    // Bundle: where round the tunnel (bunched up), how deep in the walls, how it winds and waves.
     let shell = pow(rnd(hb + 1u), 1.7);
     r = 1.02 + 1.3 * shell;
     th = rnd(hb) * TAU;
-    tw = u32(rnd(hb + 2u) * 4.0) % 4u;
-    wob = rnd(hb + 3u) * TAU;
+    th += 0.35 * sin(th * 3.0 + 1.3);
+    st.twist = mix(0.1, 0.28, rnd(hb + 2u));
+    st.wind = WIND * mix(0.55, 1.45, rnd(hb + 4u));
+    st.wob = rnd(hb + 3u) * TAU;
+    st.wa = 0.2 + 0.4 * rnd(hb + 5u);
+    st.wf = 0.12 + 0.28 * rnd(hb + 6u);
+    st.ws = (0.3 + 0.7 * rnd(hb + 7u)) * select(-1.0, 1.0, rnd(hb + 9u) < 0.7);
+    st.braid = rnd(hs + 4u) * TAU;
+    st.strm = 1.0;
     // Strand within its bundle.
     th += (rnd(hs) - 0.5) * 0.09 / r;
     r += (rnd(hs + 1u) - 0.5) * 0.07;
@@ -115,17 +144,13 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
   if (a < 0.0) { a = a + W; }
   let z = a - u.c.y;
 
-  // Round the tunnel: the spiral, a wobble, and the whole vortex spinning.
-  let strm = select(0.0, 1.0, ii >= nDust);
-  let wb = 0.35 * sin(P(8u) + z * K(8u) + wob) * strm;
-  let z1 = z + u.e.w;
-  let now = th + wb + strm * (K(4u + tw) * z + WIND * z * z) + u.b.z * spinMul;
-  let then = th + wb + strm * (K(4u + tw) * z1 + WIND * z1 * z1) + u.b.w * spinMul;
-  let c = centre(z);
-  let rn = r * (1.0 + OPEN * strm * z);
-  let rt = r * (1.0 + OPEN * strm * z1);
-  let pNow = vec3f(c + rn * vec2f(cos(now), sin(now)), z);
-  let pThen = vec3f(c + rt * vec2f(cos(then), sin(then)), z);
+  // Round the tunnel: the spiral, its waves, and the whole vortex spinning.
+  st.th = th;
+  st.r = r;
+  let t = u.a.z;
+  let pNow = place(st, z, u.b.z * spinMul, t);
+  var pThen = place(st, z + u.e.w, u.b.w * spinMul, t);
+  pThen.z = z;
 
   let ca = u.vp * vec4f(pNow, 1.0);
   if (ca.w < 0.06) { return none(); }
@@ -135,7 +160,6 @@ fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
   var B = (cb.xy / cb.w * 0.5 + 0.5) * res;
 
   // Twinkle, and fade in near the eye and out towards the black hole.
-  let t = u.a.z;
   let tw8 = 0.55 + 0.45 * sin(t * (2.0 + 5.0 * rnd(ii + 77u)) + rnd(ii + 78u) * TAU);
   let fade = smoothstep(0.3, 2.5, z) * pow(1.0 - smoothstep(u.c.z * 0.3, u.c.z, z), 1.2);
   let rTrue = size * u.e.x / ca.w;

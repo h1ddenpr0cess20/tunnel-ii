@@ -39,6 +39,24 @@ vec2 centre(float z) {
               1.2 * wave(2u, z) + 0.5 * wave(3u, z) + 0.5 * wave(10u, z));
 }
 
+// A stream's shape: see particles.wgsl.
+struct Stream {
+  float th, r;
+  float twist, wind;
+  float wa, wf, ws;
+  float wob, braid, strm;
+};
+
+vec3 place(Stream st, float z, float spin, float t) {
+  float wave = st.wa * sin(z * st.wf + st.wob + t * st.ws);
+  float braid = 0.05 / st.r * sin(z * 0.8 + st.braid + t * 1.1);
+  float wb = 0.35 * sin(P(8u) + z * K(8u) + st.wob);
+  float ang = st.th + spin + st.strm * (st.twist * z + st.wind * z * z + wave + braid + wb);
+  float swell = 1.0 + st.strm * (OPEN * z + 0.16 * sin(z * st.wf * 1.3 + st.wob * 1.7 - t * st.ws * 0.8));
+  vec2 lean = vec2(sin(t * 0.071 + 1.0), sin(t * 0.053 + 2.0)) * 0.1 * z;
+  return vec3(centre(z) + lean + st.r * swell * vec2(cos(ang), sin(ang)), z);
+}
+
 void none() {
   gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
   vQ = vec2(0.0);
@@ -53,8 +71,7 @@ void main() {
 
   float zoff, r, th, size, bright;
   float spinMul = 1.0;
-  uint tw = 0u;
-  float wob = 0.0;
+  Stream st = Stream(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
   if (ii < nDust) {
     uint h = ii * 4u + 17u;
@@ -76,8 +93,15 @@ void main() {
     float shell = pow(rnd(hb + 1u), 1.7);
     r = 1.02 + 1.3 * shell;
     th = rnd(hb) * TAU;
-    tw = uint(rnd(hb + 2u) * 4.0) % 4u;
-    wob = rnd(hb + 3u) * TAU;
+    th += 0.35 * sin(th * 3.0 + 1.3);
+    st.twist = mix(0.1, 0.28, rnd(hb + 2u));
+    st.wind = WIND * mix(0.55, 1.45, rnd(hb + 4u));
+    st.wob = rnd(hb + 3u) * TAU;
+    st.wa = 0.2 + 0.4 * rnd(hb + 5u);
+    st.wf = 0.12 + 0.28 * rnd(hb + 6u);
+    st.ws = (0.3 + 0.7 * rnd(hb + 7u)) * (rnd(hb + 9u) < 0.7 ? 1.0 : -1.0);
+    st.braid = rnd(hs + 4u) * TAU;
+    st.strm = 1.0;
     th += (rnd(hs) - 0.5) * 0.09 / r;
     r += (rnd(hs + 1u) - 0.5) * 0.07;
     zoff = fract((float(n) + 0.85 * rnd(hp)) / float(per) + rnd(hs + 2u)) * W;
@@ -94,16 +118,12 @@ void main() {
   if (aa < 0.0) aa += W;
   float z = aa - u.c.y;
 
-  float strm = ii >= nDust ? 1.0 : 0.0;
-  float wb = 0.35 * sin(P(8u) + z * K(8u) + wob) * strm;
-  float z1 = z + u.e.w;
-  float now = th + wb + strm * (K(4u + tw) * z + WIND * z * z) + u.b.z * spinMul;
-  float then = th + wb + strm * (K(4u + tw) * z1 + WIND * z1 * z1) + u.b.w * spinMul;
-  vec2 cc = centre(z);
-  float rn = r * (1.0 + OPEN * strm * z);
-  float rt = r * (1.0 + OPEN * strm * z1);
-  vec3 pNow = vec3(cc + rn * vec2(cos(now), sin(now)), z);
-  vec3 pThen = vec3(cc + rt * vec2(cos(then), sin(then)), z);
+  st.th = th;
+  st.r = r;
+  float t = u.a.z;
+  vec3 pNow = place(st, z, u.b.z * spinMul, t);
+  vec3 pThen = place(st, z + u.e.w, u.b.w * spinMul, t);
+  pThen.z = z;
 
   vec4 ca = u.vp * vec4(pNow, 1.0);
   if (ca.w < 0.06) { none(); return; }
@@ -112,7 +132,6 @@ void main() {
   vec2 A = (ca.xy / ca.w * 0.5 + 0.5) * res;
   vec2 B = (cb.xy / cb.w * 0.5 + 0.5) * res;
 
-  float t = u.a.z;
   float tw8 = 0.55 + 0.45 * sin(t * (2.0 + 5.0 * rnd(ii + 77u)) + rnd(ii + 78u) * TAU);
   float fade = smoothstep(0.3, 2.5, z) * pow(1.0 - smoothstep(u.c.z * 0.3, u.c.z, z), 1.2);
   float rTrue = size * u.e.x / ca.w;

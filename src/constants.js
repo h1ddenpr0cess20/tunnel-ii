@@ -13,9 +13,8 @@ export const HIT_R = 0.09;       // your size, for collisions
 export const MISS_R = 0.42;      // closer than this past debris is a near miss
 export const STREAK = 0.018;     // seconds of motion each streak shows
 
-// Wave numbers for the tunnel's bends (0-3 and 9-10), the streams' twists (4-7, in
-// radians per unit of depth ahead of you) and their wobble (8), with the
-// phase each starts at. The shader gets (s * K + K0) mod 2π, worked out here
+// Wave numbers for the tunnel's bends (0-3 and 9-10) and the streams'
+// wobble (8), with the phase each starts at (4-7 are spare). The shader gets (s * K + K0) mod 2π, worked out here
 // in double precision.
 export const K = [0.021, 0.047, 0.017, 0.039, 0.16, 0.2, 0.26, 0.12, 0.05, 0.06, 0.075, 0];
 export const K0 = [0, 1.3, 2.1, 0.4, 0, 0, 0, 0, 0, 0.7, 2.9, 0];
