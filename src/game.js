@@ -4,6 +4,7 @@
 import {
   SPAWN_D, M_PER_UNIT, PLAY_R, VMAX, HIT_R, MISS_R, STREAK, pathXY,
 } from './constants.js';
+import { MESH } from './meshes.js';
 import { qAxis, qMul, qNorm, qRot, randomAxis, add, sub, norm, cross, segDist } from './math.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -13,9 +14,9 @@ const flySpeed = t => 7 + 9 * (1 - Math.exp(-t / 120));
 
 export const marsLeft = m => 225e6 * Math.pow(0.5, m / 250);   // km
 
-// Meshes (see gpu.js) and finishes (see debris.wgsl).
-const ROCKS = [0, 1, 2], BOX = 3;
-const ROCK = 0, METAL = 1, PANEL = 2, GIRDER = 3;
+// Meshes (see meshes.js) and finishes (see debris.wgsl).
+const { ROCKS, BOX, TRUSS, DISH, CYL, SHARDS } = MESH;
+const ROCK = 0, METAL = 1, PANEL = 2, GIRDER = 3, FOIL = 4, PAINT = 5;
 const Z_AXIS = [0, 0, 1];
 
 export function createGame(events) {
@@ -53,21 +54,29 @@ export function createGame(events) {
 
   function satellite(z) {
     const a = Math.random() * 6.3, rr = Math.sqrt(Math.random()) * 0.35;
-    const pl = rnd(0.65, 1.0);
-    const c = 0.13 + pl / 2;
+    // Solar wings: two panels a side on a boom from the foil-wrapped body.
+    const pl = rnd(0.55, 0.85), seg = (pl - 0.02) / 2, w0 = 0.27;
+    const parts = [
+      { mesh: BOX, mat: FOIL, off: [0, 0, 0], scl: [0.13, 0.13, 0.17] },
+      { mesh: BOX, mat: METAL, off: [0, 0, 0.185], scl: [0.135, 0.135, 0.016] },
+      { mesh: BOX, mat: METAL, off: [0, 0, -0.185], scl: [0.135, 0.135, 0.016] },
+      { mesh: DISH, mat: PAINT, off: [0.02, 0.03, -0.215], scl: [0.11, 0.11, 0.11] },
+      { mesh: CYL, mat: GIRDER, off: [0.02, 0.03, -0.27], scl: [0.006, 0.006, 0.05] },
+      { mesh: CYL, mat: GIRDER, off: [0.08, -0.08, 0.3], scl: [0.004, 0.004, 0.12] },
+    ];
+    for (const side of [-1, 1]) {
+      parts.push({ mesh: BOX, mat: GIRDER, off: [side * 0.2, 0, 0], scl: [0.075, 0.01, 0.01] });
+      parts.push({ mesh: BOX, mat: PANEL, off: [side * (w0 + seg / 2), 0, 0], scl: [seg / 2, 0.13, 0.008] });
+      parts.push({ mesh: BOX, mat: PANEL, off: [side * (w0 + seg * 1.5 + 0.02), 0, 0], scl: [seg / 2, 0.13, 0.008] });
+    }
     return debris('satellite', rr * Math.cos(a), rr * Math.sin(a), z, {
       q: qMul(qAxis(Z_AXIS, Math.random() * 6.3), qAxis([1, 0, 0], rnd(0.3, 0.9))),
       axis: Z_AXIS, w: rnd(0.5, 1.1) * (Math.random() < 0.5 ? -1 : 1),
-      parts: [
-        { mesh: BOX, mat: METAL, off: [0, 0, 0], scl: [0.13, 0.13, 0.18] },
-        { mesh: BOX, mat: METAL, off: [0, 0, -0.24], scl: [0.03, 0.03, 0.08] },
-        { mesh: BOX, mat: PANEL, off: [c, 0, 0], scl: [pl / 2, 0.12, 0.012] },
-        { mesh: BOX, mat: PANEL, off: [-c, 0, 0], scl: [pl / 2, 0.12, 0.012] },
-      ],
+      parts,
       cols: [
-        { a: [0, 0, -0.1], b: [0, 0, 0.1], r: 0.17 },
-        { a: [0.13, 0, 0], b: [0.13 + pl, 0, 0], r: 0.1 },
-        { a: [-0.13, 0, 0], b: [-0.13 - pl, 0, 0], r: 0.1 },
+        { a: [0, 0, -0.2], b: [0, 0, 0.2], r: 0.17 },
+        { a: [0.13, 0, 0], b: [w0 + pl, 0, 0], r: 0.1 },
+        { a: [-0.13, 0, 0], b: [-w0 - pl, 0, 0], r: 0.1 },
       ],
     });
   }
@@ -76,11 +85,7 @@ export function createGame(events) {
     const a = Math.random() * 6.3;
     return debris('girder', rnd(-0.12, 0.12), rnd(-0.12, 0.12), z, {
       q: qAxis(Z_AXIS, a), axis: Z_AXIS, w: rnd(0.25, 0.6) * (Math.random() < 0.5 ? -1 : 1),
-      parts: [
-        { mesh: BOX, mat: GIRDER, off: [0, 0, 0], scl: [1.05, 0.055, 0.055] },
-        { mesh: BOX, mat: GIRDER, off: [0, 0.075, 0], scl: [1.0, 0.012, 0.03] },
-        { mesh: BOX, mat: GIRDER, off: [0, -0.075, 0], scl: [1.0, 0.012, 0.03] },
-      ],
+      parts: [{ mesh: TRUSS, mat: GIRDER, off: [0, 0, 0], scl: [1, 1, 1] }],
       cols: [{ a: [-1.05, 0, 0], b: [1.05, 0, 0], r: 0.085 }],
     });
   }
@@ -89,7 +94,7 @@ export function createGame(events) {
     const sx = rnd(0.12, 0.26), sy = rnd(0.08, 0.18);
     return debris('shard', x, y, z, {
       w: rnd(1, 2.4),
-      parts: [{ mesh: BOX, mat: Math.random() < 0.5 ? PANEL : METAL, off: [0, 0, 0], scl: [sx, sy, 0.012] }],
+      parts: [{ mesh: pick(SHARDS), mat: pick([PANEL, PANEL, METAL, FOIL]), off: [0, 0, 0], scl: [sx, sy, 0.01] }],
       cols: [{ a: [0, 0, 0], b: [0, 0, 0], r: Math.max(sx, sy) * 0.8 }],
       vx: rnd(-0.15, 0.15), vy: rnd(-0.15, 0.15), orbit: rnd(-0.25, 0.25),
     });

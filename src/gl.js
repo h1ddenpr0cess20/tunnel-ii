@@ -57,9 +57,11 @@ export function createWebGL(canvas, meshes) {
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
   gl.bufferData(gl.ARRAY_BUFFER, meshes.data, gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
   gl.enableVertexAttribArray(1);
-  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
   gl.bindVertexArray(null);
 
   let fbo = null, hdr = null, depth = null, size = [0, 0];

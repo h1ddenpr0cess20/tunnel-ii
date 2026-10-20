@@ -44,10 +44,11 @@ export async function createWebGPU(canvas, meshes) {
     vertex: {
       module: mDebris, entryPoint: 'vs',
       buffers: [{
-        arrayStride: 24,
+        arrayStride: 28,
         attributes: [
           { shaderLocation: 0, offset: 0, format: 'float32x3' },
           { shaderLocation: 1, offset: 12, format: 'float32x3' },
+          { shaderLocation: 2, offset: 24, format: 'float32' },
         ],
       }],
     },

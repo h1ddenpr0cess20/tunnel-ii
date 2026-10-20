@@ -39,11 +39,11 @@ thins itself out if frames run slow).
 
 ## Debris
 
-- Rocks, alone or in clusters
-- Dead satellites, turning, with solar panels that sweep round
-- Girders right across the tunnel
+- Rocks, alone or in clusters: lumpy, cratered and pitted
+- Dead satellites in crinkled foil, with a dish and solar wings that sweep round as they turn
+- Lattice girders right across the tunnel
 - Belts of rocks with one way through
-- Shards of panel, tumbling
+- Torn shards of panel, tumbling
 
 Passing close is a near miss: you'll hear it go by.
 
@@ -64,7 +64,7 @@ high pings, a few of the sparkles going past.
 - `src/gpu.js`, `src/gl.js`: the WebGPU and WebGL 2 renderers; `src/renderer.js` picks one
 - `src/frame.js`: packs each frame's uniforms once for either renderer
 - `src/game.js`: flying, steering, debris, collisions and near misses
-- `src/meshes.js`: the rocks and the box everything else is made of
+- `src/meshes.js`: the rocks, truss, dish, shards and the rounded box satellites are built from
 - `src/main.js`: the frame loop
 - `src/input.js`, `src/hud.js`, `src/sound.js`: controls, HUD, audio
 - `src/constants.js`, `src/math.js`: shared numbers and helpers

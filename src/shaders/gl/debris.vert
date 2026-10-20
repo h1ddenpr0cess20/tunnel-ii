@@ -3,9 +3,9 @@
 precision highp float;
 
 struct Inst {
-  vec4 pos;     // xyz, finish (0 rock, 1 metal, 2 solar panel, 3 girder)
+  vec4 pos;     // xyz, finish (0 rock, 1 painted metal, 2 solar cells, 3 girder, 4 foil, 5 white paint)
   vec4 q;       // turn
-  vec4 scl;     // half size xyz, seed
+  vec4 scl;     // size xyz, seed
   vec4 rad;     // xy: out from the tunnel's middle
 };
 layout(std140) uniform U {
@@ -18,10 +18,12 @@ uniform int base;   // WebGL 2 has no first instance, so each mesh's range start
 
 layout(location = 0) in vec3 p;
 layout(location = 1) in vec3 n;
+layout(location = 2) in float cav;
 
 out vec3 vN;
 out vec3 vW;
 out vec3 vL;
+out float vCav;
 flat out vec4 vMat;   // finish, seed, radial xy
 
 vec3 qrot(vec4 q, vec3 v) {
@@ -37,5 +39,6 @@ void main() {
   vN = qrot(it.q, n / it.scl.xyz);
   vW = w;
   vL = p * it.scl.xyz;
+  vCav = cav;
   vMat = vec4(it.pos.w, it.scl.w, it.rad.xy);
 }
